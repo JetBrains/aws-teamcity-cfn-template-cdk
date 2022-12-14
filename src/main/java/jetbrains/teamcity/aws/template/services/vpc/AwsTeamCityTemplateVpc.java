@@ -1,4 +1,4 @@
-package jetbrains.teamcity.aws.template.vpc;
+package jetbrains.teamcity.aws.template.services.vpc;
 
 import org.jetbrains.annotations.NotNull;
 import software.amazon.awscdk.services.ec2.SubnetConfiguration;
@@ -9,7 +9,7 @@ import software.constructs.Construct;
 import java.util.Arrays;
 import java.util.List;
 
-public class AwsTeamcityTemplateVpc {
+public class AwsTeamCityTemplateVpc {
 
     // VPC Configuration
     private static final String VPC_NAME = "TeamCityVpc";

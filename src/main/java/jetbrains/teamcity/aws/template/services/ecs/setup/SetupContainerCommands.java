@@ -1,4 +1,4 @@
-package jetbrains.teamcity.aws.template.ecs.setup;
+package jetbrains.teamcity.aws.template.services.ecs.setup;
 
 public class SetupContainerCommands {
     public final static String createDatabaseSh =
@@ -34,5 +34,5 @@ public class SetupContainerCommands {
             "\n" +
             "chown 1000:1000 -R \"$DATADIR\" \"$LOGSDIR\"\n" +
             "\n" +
-            "echo \"/////////////Finished\"";
+            "echo \"/////////////Database Setup COMPLETED\"";
 }
