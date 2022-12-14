@@ -30,6 +30,7 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
 
 
 
+        //EFS
         FileSystem fileSystem = FileSystem.Builder.create(this, "MyEfsFileSystem")
                 .vpc(vpc)
                 .lifecyclePolicy(LifecyclePolicy.AFTER_14_DAYS) // files are not transitioned to infrequent access (IA) storage by default
@@ -108,6 +109,7 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                 .readOnly(false)
                 .sourceVolume(logsVolume.getName())
                 .build();
+        //EFS ^
 
 
 
@@ -117,23 +119,7 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
 
 
 
-
-
-
-
-
-
-        Cluster cluster = Cluster.Builder.create(this, "Cluster")
-                .vpc(vpc)// creates Fargate ECS by default
-                .build();
-
-//        FargateTaskDefinition fargateTaskDefinition = FargateTaskDefinition.Builder.create(this, "SetupTeamCityTask")
-//                .memoryLimitMiB(1024)
-//                .cpu(256)
-//                .volumes(Arrays.asList(dataDirVolume, logsVolume))
-//                .build();
-
-
+        //Parameters and passwords
         CfnParameter pgHost = CfnParameter.Builder.create(this, "PGHOST")
                 .type("String")
                 .description("PGHOST")
@@ -142,7 +128,6 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                 .type("String")
                 .description("PGPASSWORD")
                 .build();
-
 
         Map<String, String> envVarsMap = new HashMap<>();
         envVarsMap.put("PGHOST", pgHost.getValueAsString());
@@ -154,35 +139,15 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
         envVarsMap.put("DATADIR", "/data/teamcity_server/datadir");
         envVarsMap.put("LOGSDIR", "/opt/teamcity/logs");
         envVarsMap.put("TEAMCITY_SERVER_OPTS", "-Dteamcity.startup.maintenance=false");
-
-//        Map<String, Secret> secretVarsMap = new HashMap<>();
-//        secretVarsMap.put("SECRET", Secret.from(secret));
-//                "DB_PASSWORD", Secret.fromSecretsManager(dbSecret, "password"),  // Reference a specific JSON field, (requires platform version 1.4.0 or later for Fargate tasks)
-//                "API_KEY", Secret.fromSecretsManagerVersion(secret, SecretVersionInfo.builder().versionId("12345").build(), "apiKey"),  // Reference a specific version of the secret by its version id or version stage (requires platform version 1.4.0 or later for Fargate tasks)
-//                "PARAMETER", Secret.fromSsmParameter(parameter))
-
-//        ContainerDefinition container = fargateTaskDefinition.addContainer("SetupContainer", ContainerDefinitionOptions.builder()
-//                .image(ContainerImage.fromRegistry("postgres:14.3"))
-//                .environment(envVarsMap)
-////                .secrets(secretVarsMap)
-//                .entryPoint(Arrays.asList("/bin/sh", "-c"))
-//                .command(Collections.singletonList("apt install curl awscli jq -y"))
-//                .build());
-//        container.addMountPoints(dataDirMountPoint, logsMountPoint);
+        //Parameters and passwords ^
 
 
-//        ScheduledFargateTask.Builder.create(this, "AAA")
-//                .cluster(cluster)
-//                .platformVersion(FargatePlatformVersion.LATEST)
-//                .taskDefinition(fargateTaskDefinition);
-//
-//        EcsRunTask.Builder.create(this, "CustomTask")
-//                .integrationPattern(IntegrationPattern.RUN_JOB)
-//                .cluster(cluster)
-//                .taskDefinition(fargateTaskDefinition)
-//                .launchTarget(EcsFargateLaunchTarget.Builder.create().platformVersion(FargatePlatformVersion.LATEST).build())
-//                .build();
+        //ECS
+        Cluster cluster = Cluster.Builder.create(this, "Cluster")
+                .vpc(vpc)// creates Fargate ECS by default
+                .build();
 
+        //TeamCity server ALB balanced service
         ApplicationLoadBalancedFargateService loadBalancedFargateService = ApplicationLoadBalancedFargateService.Builder.create(this, "Service")
                 .cluster(cluster)
                 .memoryLimitMiB(10240)
@@ -197,14 +162,27 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                         .containerPort(8111)
                         .build())
                 .build();
-//
+
+        assert loadBalancedFargateService.getTaskDefinition().getDefaultContainer() != null;
+
+        //add mount points to the TC container
+        loadBalancedFargateService.getTaskDefinition().getDefaultContainer().addMountPoints(dataDirMountPoint, logsMountPoint);
+
         loadBalancedFargateService.getTaskDefinition().addVolume(dataDirVolume);
         loadBalancedFargateService.getTaskDefinition().addVolume(logsVolume);
+
         fileSystem.getConnections().allowDefaultPortFrom(loadBalancedFargateService.getService().getConnections());
 
         fileSystem.grant(loadBalancedFargateService.getTaskDefinition().getTaskRole(), "elasticfilesystem:ClientMount", "elasticfilesystem:ClientWrite");
 
 
+        loadBalancedFargateService.getTargetGroup().configureHealthCheck(HealthCheck.builder()
+                .path("/mnt/get/stateRevision")
+                .build());
+        //TeamCity server ALB balanced service ^
+
+
+        //Setup container task
         LogGroup setupContainerLogGroup = LogGroup.Builder.create(this, "SetupLogGroup")
                 .retention(RetentionDays.ONE_WEEK)
                 .build();
@@ -214,8 +192,6 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                         .environment(envVarsMap)
                         .entryPoint(Arrays.asList("/bin/sh", "-c"))
                         .command(Collections.singletonList(
-//                                "/bin/sh",
-//                                "-c",
                                 "apt-get update; apt-get install curl -y; mkdir -p /usr/local/lib/jdbc; curl https://jdbc.postgresql.org/download/postgresql-42.3.4.jar --output /usr/local/lib/jdbc/postgresql-42.3.4.jar; ls /usr/local/lib/jdbc; " + createDatabaseSh
                         ))
                         .logging(LogDriver.awsLogs(AwsLogDriverProps.builder()
@@ -225,26 +201,19 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                         .build());
         containerDefinition.addMountPoints(dataDirMountPoint, logsMountPoint);
 
-//        loadBalancedFargateService.getTaskDefinition().addContainer("AAA", ContainerDefinitionOptions.builder()
-//                        .vo
-//                .build());
-        //add mount points to the TC container
-        loadBalancedFargateService.getTaskDefinition().getDefaultContainer().addMountPoints(dataDirMountPoint, logsMountPoint);
-        loadBalancedFargateService.getTaskDefinition().getDefaultContainer().addContainerDependencies(ContainerDependency.builder()
-                .container(containerDefinition)
-                .condition(ContainerDependencyCondition.COMPLETE)
-                .build());
-        System.out.println("TEST" + loadBalancedFargateService.getTaskDefinition().getDefaultContainer().getContainerName());
 
-        System.out.println(loadBalancedFargateService.getTaskDefinition().getDefaultContainer().getLogDriverConfig().getLogDriver());
-        System.out.println(loadBalancedFargateService.getTaskDefinition().getDefaultContainer().getLogDriverConfig().getOptions());
+        loadBalancedFargateService
+                .getTaskDefinition()
+                .getDefaultContainer()
+                .addContainerDependencies(ContainerDependency.builder()
+                        .container(containerDefinition)
+                        .condition(ContainerDependencyCondition.COMPLETE)
+                        .build());
+        //Setup container task ^
 
 
-        loadBalancedFargateService.getTargetGroup().configureHealthCheck(HealthCheck.builder()
-                .path("/mnt/get/stateRevision")
-                .build());
 
-
+        //CloudFront distribution
 
         LoadBalancerV2Origin albOrigin = LoadBalancerV2Origin.Builder.create(loadBalancedFargateService.getLoadBalancer())
                 .connectionAttempts(3)
@@ -261,5 +230,7 @@ public class AwsTeamcityCfnTemplateCdkStack extends Stack {
                         .allowedMethods(AllowedMethods.ALLOW_ALL)
                         .build())
                 .build();
+
+        //CloudFront distribution ^
     }
 }
