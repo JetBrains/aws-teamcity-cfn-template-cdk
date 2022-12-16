@@ -1,6 +1,12 @@
 package jetbrains.teamcity.aws.template.services.ecs.setup;
 
-public class SetupContainerCommands {
+import jetbrains.teamcity.aws.template.services.rds.AwsTeamCityTemplateRds;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.HashMap;
+import java.util.Map;
+
+public class SetupContainerParameters {
     public final static String createDatabaseSh =
             "# Define DATADIR env variable in ECS task\n" +
             "CONFDIR=${DATADIR}/config\n" +
@@ -35,4 +41,18 @@ public class SetupContainerCommands {
             "chown 1000:1000 -R \"$DATADIR\" \"$LOGSDIR\"\n" +
             "\n" +
             "echo \"/////////////Database Setup COMPLETED\"";
+
+    public static Map<String, String> getEnvVarParameters(@NotNull final AwsTeamCityTemplateRds teamcityTemplateRds) {
+        Map<String, String> envVarsMap = new HashMap<>();
+        envVarsMap.put("PGHOST", teamcityTemplateRds.getDatabaseInstance().getInstanceEndpoint().getHostname());
+        envVarsMap.put("PGPORT", "5432");
+        envVarsMap.put("PGUSER", AwsTeamCityTemplateRds.DATABASE_USERNAME);
+        envVarsMap.put("PGPASSWORD", AwsTeamCityTemplateRds.DATABASE_MASTER_PASSWORD);
+
+        envVarsMap.put("DB", AwsTeamCityTemplateRds.DATABASE_NAME);
+        envVarsMap.put("DATADIR", "/data/teamcity_server/datadir");
+        envVarsMap.put("LOGSDIR", "/opt/teamcity/logs");
+        envVarsMap.put("TEAMCITY_SERVER_OPTS", "-Dteamcity.startup.maintenance=false");
+        return envVarsMap;
+    }
 }
