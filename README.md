@@ -4,7 +4,7 @@ This is a project for generating TeamCity CloudFormation template for quick setu
 Created using CDK (Cloud Development Kit) with Java.
 
 # AWS Resources architecture
-//TODO
+![AWS Resources architecture](./assets/images/AwsArchitecture.png)
 
 # How to use
 * install the [CDK toolkit](https://docs.aws.amazon.com/cdk/v2/guide/cli.html)
