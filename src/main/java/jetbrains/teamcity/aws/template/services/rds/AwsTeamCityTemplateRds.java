@@ -9,21 +9,25 @@ import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFarga
 import software.amazon.awscdk.services.rds.*;
 import software.constructs.Construct;
 
+import java.util.UUID;
+
 public class AwsTeamCityTemplateRds {
 
     public static final String DATABASE_USERNAME = "teamcity";
 
     public static final String DATABASE_NAME = "teamcity";
 
+    public static final String DATABASE_INSTANCE_IDENTIFIER = "TeamcityTemplateDatabase-" + UUID.randomUUID();
+
+    public static final String DATABASE_MASTER_PASSWORD = UUID.randomUUID().toString();
 
     private final DatabaseInstance myDatabaseInstance;
     public AwsTeamCityTemplateRds(@NotNull final Construct scope,
                                   @NotNull final Vpc vpc,
-                                  @NotNull final ApplicationLoadBalancedFargateService loadBalancedFargateService,
-                                  @NotNull final SecretValue masterDbPassword) {
+                                  @NotNull final ApplicationLoadBalancedFargateService loadBalancedFargateService) {
         myDatabaseInstance = DatabaseInstance.Builder.create(scope, "TeamCityDatabase")
                 .engine(DatabaseInstanceEngine.postgres(PostgresInstanceEngineProps.builder().version(PostgresEngineVersion.VER_14_3).build()))
-                .instanceIdentifier("TeamcityTemplateDatabase")
+                .instanceIdentifier(DATABASE_INSTANCE_IDENTIFIER)
                 .databaseName(AwsTeamCityTemplateRds.DATABASE_NAME)
                 .allocatedStorage(30)
                 .maxAllocatedStorage(100)
@@ -35,7 +39,7 @@ public class AwsTeamCityTemplateRds {
                 .vpcSubnets(SubnetSelection.builder()
                         .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
                         .build())
-                .credentials(Credentials.fromPassword(AwsTeamCityTemplateRds.DATABASE_USERNAME, masterDbPassword))
+                .credentials(Credentials.fromPassword(AwsTeamCityTemplateRds.DATABASE_USERNAME, new SecretValue(DATABASE_MASTER_PASSWORD)))
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build();
 
