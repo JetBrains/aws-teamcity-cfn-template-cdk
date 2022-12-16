@@ -25,6 +25,8 @@ public class AwsTeamCityTemplateCloudFront {
                         .origin(albOrigin)
                         .viewerProtocolPolicy(ViewerProtocolPolicy.REDIRECT_TO_HTTPS)
                         .allowedMethods(AllowedMethods.ALLOW_ALL)
+                        .originRequestPolicy(OriginRequestPolicy.ALL_VIEWER)
+                        .cachePolicy(CachePolicy.CACHING_DISABLED)
                         .build())
                 .build();
     }

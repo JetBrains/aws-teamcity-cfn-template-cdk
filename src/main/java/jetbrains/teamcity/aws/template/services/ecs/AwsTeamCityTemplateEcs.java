@@ -34,8 +34,7 @@ public class AwsTeamCityTemplateEcs {
                         .image(ContainerImage.fromRegistry("jetbrains/teamcity-server"))
                         .entryPoint(Arrays.asList("/bin/sh", "-c"))
                         .command(Collections.singletonList("/run-services.sh"))
-                        //TODO check why TC behaves strangely with CloudFront when using this option
-//                        .environment(Collections.singletonMap("TEAMCITY_HTTPS_PROXY_ENABLED", "true"))
+                        .environment(Collections.singletonMap("TEAMCITY_HTTPS_PROXY_ENABLED", "true"))
                         .containerPort(8111)
                         .build())
                 .build();
