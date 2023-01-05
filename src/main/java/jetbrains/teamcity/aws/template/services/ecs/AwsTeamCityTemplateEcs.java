@@ -17,6 +17,8 @@ public class AwsTeamCityTemplateEcs {
 
     private final ApplicationLoadBalancedFargateService myApplicationLoadBalancedFargateService;
 
+    private final String startServerWithAgentCommand = "unzip /opt/teamcity/webapps/ROOT/update/buildAgent.zip -d /opt/teamcity/buildAgent; mv /opt/teamcity/buildAgent/conf/buildAgent.dist.properties /opt/teamcity/buildAgent/conf/buildAgent.properties; /opt/teamcity/bin/runAll.sh start; while ! tail -f /opt/teamcity/logs/teamcity-server.log ; do sleep 1 ; done";
+
     public AwsTeamCityTemplateEcs(@NotNull final Construct scope, @NotNull final Vpc vpc, @NotNull final AwsTeamCityTemplateEfs teamcityTemplateEfs) {
         Cluster cluster = Cluster.Builder.create(scope, "Cluster")
                 .vpc(vpc)// creates Fargate ECS by default
@@ -33,7 +35,7 @@ public class AwsTeamCityTemplateEcs {
                         .containerName("TeamCity")
                         .image(ContainerImage.fromRegistry("jetbrains/teamcity-server"))
                         .entryPoint(Arrays.asList("/bin/sh", "-c"))
-                        .command(Collections.singletonList("/run-services.sh"))
+                        .command(Collections.singletonList(startServerWithAgentCommand))
                         .environment(Collections.singletonMap("TEAMCITY_HTTPS_PROXY_ENABLED", "true"))
                         .containerPort(8111)
                         .build())
