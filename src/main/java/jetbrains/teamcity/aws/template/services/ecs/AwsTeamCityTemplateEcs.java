@@ -7,11 +7,14 @@ import software.amazon.awscdk.services.ecs.Cluster;
 import software.amazon.awscdk.services.ecs.ContainerImage;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedTaskImageOptions;
-import software.amazon.awscdk.services.elasticloadbalancingv2.HealthCheck;
+import software.amazon.awscdk.services.elasticloadbalancingv2.*;
 import software.constructs.Construct;
 
 import java.util.Arrays;
 import java.util.Collections;
+
+import static jetbrains.teamcity.aws.template.services.cloudfront.AwsTeamCityTemplateCloudFront.CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION;
+import static jetbrains.teamcity.aws.template.services.cloudfront.AwsTeamCityTemplateCloudFront.CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION_VALUE;
 
 public class AwsTeamCityTemplateEcs {
 
@@ -57,9 +60,35 @@ public class AwsTeamCityTemplateEcs {
         myApplicationLoadBalancedFargateService.getTargetGroup().configureHealthCheck(HealthCheck.builder()
                 .path("/mnt/get/stateRevision")
                 .build());
+
+        addCustomHttpHeaderRequirement(scope);
     }
 
     public ApplicationLoadBalancedFargateService getApplicationLoadBalancedFargateService() {
         return myApplicationLoadBalancedFargateService;
+    }
+
+    private void addCustomHttpHeaderRequirement(@NotNull final Construct scope) {
+        ApplicationListenerRule.Builder.create(scope, "CustomHeaderRuleForAlbRestriction")
+                .listener(myApplicationLoadBalancedFargateService.getListener())
+                .priority(1)
+                .conditions(Collections.singletonList(
+                        ListenerCondition.httpHeader(CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION, Collections.singletonList(CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION_VALUE))
+                ))
+                .action(ListenerAction.forward(Collections.singletonList(myApplicationLoadBalancedFargateService.getTargetGroup())))
+                .build();
+
+        CfnListener defaultListener = (CfnListener) myApplicationLoadBalancedFargateService.getListener().getNode().getDefaultChild();
+        assert defaultListener != null;
+        defaultListener.setDefaultActions(Collections.singletonList(
+                CfnListener.ActionProperty.builder()
+                        .type("fixed-response")
+                        .fixedResponseConfig(CfnListener.FixedResponseConfigProperty.builder()
+                                .statusCode("403")
+                                .contentType("text/html")
+                                .messageBody("Access denied")
+                                .build())
+                        .build())
+        );
     }
 }

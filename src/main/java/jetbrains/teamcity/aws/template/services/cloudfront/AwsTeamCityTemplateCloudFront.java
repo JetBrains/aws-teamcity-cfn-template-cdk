@@ -7,7 +7,13 @@ import software.amazon.awscdk.services.cloudfront.origins.LoadBalancerV2Origin;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.constructs.Construct;
 
+import java.util.Collections;
+import java.util.UUID;
+
 public class AwsTeamCityTemplateCloudFront {
+
+    public static final String CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION = "AlbRestrictionHeader";
+    public static final String CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION_VALUE = UUID.randomUUID().toString();
 
     private final Distribution myCloudFrontDistribution;
 
@@ -16,6 +22,7 @@ public class AwsTeamCityTemplateCloudFront {
                 .connectionAttempts(3)
                 .connectionTimeout(Duration.seconds(5))
                 .readTimeout(Duration.seconds(45))
+                .customHeaders(Collections.singletonMap(CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION, CUSTOM_HTTP_HEADER_FOR_ALB_RESTRICTION_VALUE))
                 .keepaliveTimeout(Duration.seconds(45))
                 .protocolPolicy(OriginProtocolPolicy.HTTP_ONLY) //unencrypted between alb and cloudfront
                 .build();
