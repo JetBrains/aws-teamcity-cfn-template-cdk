@@ -21,6 +21,7 @@ import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.SecretValue;
 import software.amazon.awscdk.services.ec2.*;
+import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.rds.*;
 import software.constructs.Construct;
@@ -42,7 +43,7 @@ public class AwsTeamCityTemplateRds {
                                   @NotNull final Vpc vpc,
                                   @NotNull final ApplicationLoadBalancedFargateService loadBalancedFargateService) {
         myDatabaseInstance = DatabaseInstance.Builder.create(scope, "TeamCityDatabase")
-                .engine(DatabaseInstanceEngine.postgres(PostgresInstanceEngineProps.builder().version(PostgresEngineVersion.VER_14_3).build()))
+                .engine(DatabaseInstanceEngine.postgres(PostgresInstanceEngineProps.builder().version(PostgresEngineVersion.VER_16_2).build()))
                 .instanceIdentifier(DATABASE_INSTANCE_IDENTIFIER)
                 .databaseName(AwsTeamCityTemplateRds.DATABASE_NAME)
                 .allocatedStorage(30)
