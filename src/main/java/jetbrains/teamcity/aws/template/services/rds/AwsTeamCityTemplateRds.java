@@ -21,7 +21,6 @@ import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.SecretValue;
 import software.amazon.awscdk.services.ec2.*;
-import software.amazon.awscdk.services.ec2.InstanceType;
 import software.amazon.awscdk.services.ecs.patterns.ApplicationLoadBalancedFargateService;
 import software.amazon.awscdk.services.rds.*;
 import software.constructs.Construct;
@@ -51,7 +50,6 @@ public class AwsTeamCityTemplateRds {
                 .autoMinorVersionUpgrade(false)
                 .backupRetention(Duration.days(0))
                 .multiAz(false)
-                .instanceType(InstanceType.of(InstanceClass.T4G, InstanceSize.SMALL))
                 .vpc(vpc)
                 .vpcSubnets(SubnetSelection.builder()
                         .subnetType(SubnetType.PRIVATE_WITH_EGRESS)
